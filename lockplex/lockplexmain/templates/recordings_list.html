@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recordings Transcription</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: linear-gradient(to right, #6a0dad, #4b0082); /* Gradient from purple to dark purple */
+            color: white;
+            text-align: center;
+            padding: 50px;
+            margin: 0;
+            height: 100vh;
+        }
+        h1 {
+            margin-bottom: 40px;
+        }
+        .transcription {
+            margin: 20px;
+            padding: 20px;
+            border: 2px solid white;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.1); /* Slightly transparent white background */
+        }
+        .message {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: black;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Transcriptions</h1>
+    
+    {% for filename, text, score in transcriptions %}
+        <div class="transcription">
+            <h2>{{ filename }}</h2>
+            <p>Transcription: {{ text }}</p>
+            <p>Score for this entry: {{ score }}</p>
+        </div>
+    {% endfor %}
+    
+    <div class="message">
+        {{ message }}
+    </div>
+
+    <a href="{% url 'home' %}">Go to Home</a> <!-- Link to the home page -->
+</body>
+</html>

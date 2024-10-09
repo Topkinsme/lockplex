@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column; /* Stack content vertically */
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to bottom, #6a0dad, #4b0082); /* Subtle gradient */
+            color: white;
+            font-family: 'Courier New', Courier, monospace; /* Monospace font */
+            text-align: center; /* Center text for all screen sizes */
+            padding: 20px; /* Add some padding */
+        }
+        h1 {
+            font-size: 3rem; /* Large heading */
+            margin: 0;
+        }
+        /* Style the button */
+        .button {
+            margin-top: 40px; /* Space between text and button */
+            padding: 10px 20px;
+            font-size: 1rem; /* Button font size */
+            color: white; /* Text color */
+            background-color: #000; /* Pitch black button color */
+            border: none;
+            border-radius: 5px; /* Rounded corners */
+            cursor: pointer;
+            text-decoration: none; /* Remove underline */
+            transition: background-color 0.3s; /* Smooth transition */
+        }
+        .button:hover {
+            background-color: #444; /* Darker on hover */
+        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5rem; /* Smaller font size for mobile */
+            }
+            .button {
+                padding: 10px 15px; /* Adjust button padding for mobile */
+                font-size: 0.9rem; /* Smaller button font size */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="status-text">Start</h1> <!-- Text in the middle -->
+    <button id="record-button" class="button">Record Audio</button> <!-- Record audio button -->
+    
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingCount = 0; // Track the number of recordings
+        const maxRecordings = 5; // Maximum recordings
+        let filenames = []; // Array to hold the filenames
+    
+        // Array of random English words
+        const randomWords = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew"];
+    
+        document.getElementById('record-button').onclick = async () => {
+            // Select a random word and update the status text
+            const randomWord = randomWords[Math.floor(Math.random() * randomWords.length)];
+            recordingCount++;
+            document.getElementById('status-text').innerText = `Recording ${recordingCount}: ${randomWord}`;
+    
+            // Hide the record button
+            document.getElementById('record-button').style.display = 'none';
+    
+            // Check for browser compatibility
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // Get access to the microphone
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                // Start recording
+                mediaRecorder.start();
+                console.log(`Recording ${recordingCount} started`);
+    
+                // Store audio data when data is available
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+    
+                // Stop recording after a specific time (e.g., 5 seconds)
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    console.log(`Recording ${recordingCount} stopped`);
+                }, 5000); // Adjust the duration as needed
+    
+                mediaRecorder.onstop = async () => {
+                    // Create a Blob from the recorded audio data
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    audioChunks = []; // Reset audio chunks
+    
+                    // Create FormData to send to the server
+                    const formData = new FormData();
+                    const uniqueId = Date.now() + recordingCount; // Create a unique ID using timestamp and recording count
+                    formData.append('audio', audioBlob, `recording_${uniqueId}.wav`);
+                    formData.append('recording_number', recordingCount); // Add recording number
+                    formData.append('random_word', randomWord); // Add random word
+                    formData.append('unique_id', uniqueId); // Add unique ID to form data
+    
+                    // Send the audio data to the backend
+                    await fetch('/upload-audio/', {
+                        method: 'POST',
+                        body: formData,
+                    });
+    
+                    console.log(`Audio ${uniqueId} with word '${randomWord}' sent to backend`);
+    
+                    // Store the filename
+                    const filename = `recording_${uniqueId}_${recordingCount}_${randomWord}.wav`;
+                    filenames.push(filename); // Collect the filenames
+    
+                    // Check if all recordings are done
+                    if (recordingCount < maxRecordings) {
+                        // Automatically trigger the next recording after 1 second
+                        setTimeout(() => {
+                            document.getElementById('record-button').click();
+                        }, 1000);
+                    } else {
+                        // Change the text to "Thank you!" after all recordings
+                        document.getElementById('status-text').innerText = "Thank you!";
+                        
+                        // Redirect to the recordings page with all filenames
+                        const url = new URL('/recordings/', window.location.origin);
+                        filenames.forEach(file => url.searchParams.append('filenames', file)); // Append each filename
+                        window.location.href = url; // Redirect to the third page
+                    }
+                };
+            } else {
+                console.error('getUserMedia not supported on your browser!');
+            }
+        };
+    </script>
+</body>
+</html>
